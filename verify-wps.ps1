@@ -17,7 +17,8 @@ Report $true "powershell-version" $PSVersionTable.PSVersion.ToString()
 $is64 = [IntPtr]::Size -eq 8
 Report $true "powershell-bitness" $(if ($is64) { "64-bit" } else { "32-bit" })
 
-# 1. ProgID 注册表探测
+# 1. ProgID 注册表探测：只看"键存在"不够——2026-09-28 晚出现过"键还在、但 CLSID 链断了，
+# New-Object 报 80040154"的情况。跟完 ProgID -> CLSID -> LocalServer32 -> exe 存在才算 OK。
 $progids = @{
     "writer"       = "KWPS.Application"
     "spreadsheets" = "KET.Application"
@@ -25,8 +26,21 @@ $progids = @{
 }
 foreach ($k in $progids.Keys) {
     $p = $progids[$k]
-    $hit = (Test-Path "HKLM:\Software\Classes\$p") -or (Test-Path "HKCU:\Software\Classes\$p")
-    Report $hit "progid-registered" "$k -> $p"
+    $clsid = $null
+    foreach ($root in @("HKLM:\Software\Classes", "HKCU:\Software\Classes")) {
+        $v = (Get-ItemProperty "$root\$p\CLSID" -ErrorAction SilentlyContinue)."(default)"
+        if ($v) { $clsid = $v; break }
+    }
+    if (-not $clsid) { Report $false "progid-registered" "$k -> $p（CLSID 为空：COM 注册已损坏，需修复/重装 WPS）"; continue }
+    $server = $null
+    foreach ($root in @("HKLM:\Software\Classes", "HKCU:\Software\Classes")) {
+        $s = (Get-ItemProperty "$root\CLSID\$clsid\LocalServer32" -ErrorAction SilentlyContinue)."(default)"
+        if ($s) { $server = $s; break }
+    }
+    $exe = $server
+    if ($server -match '^"([^"]+)"') { $exe = $Matches[1] }
+    $okChain = ($null -ne $server) -and ($null -ne $exe) -and (Test-Path $exe)
+    Report $okChain "progid-registered" "$k -> $p -> $clsid -> $exe"
 }
 
 # 2. 逐个应用：启动 → 新建 → 写内容 → 保存 → 退出
