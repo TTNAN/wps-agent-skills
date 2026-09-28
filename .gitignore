@@ -1,0 +1,18 @@
+# Windows artifacts
+Thumbs.db
+Desktop.ini
+
+# WPS lock files
+~$*.docx
+~$*.xlsx
+~$*.pptx
+~*.tmp
+
+# Test outputs
+*.pdf
+!assets/*.pdf
+
+# Editors
+.vscode/
+.idea/
+*.swp
