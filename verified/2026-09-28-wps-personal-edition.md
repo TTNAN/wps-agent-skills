@@ -18,12 +18,30 @@
 | `KWPP.Application` 注册 | OK |
 | writer：新建 + 保存 .docx | OK |
 | spreadsheets：新建 + 保存 .xlsx | OK |
-| presentation：新建 + 保存 | **FAIL** — `HRESULT E_FAIL` |
-| 残留进程检查 | `wps.exe` / `et.exe` 在 `Quit()` 后可能残留；`wpp.exe` 退出干净 |
+| presentation：新建 + 保存 | 待重跑（见下） |
+| 残留进程检查 | `wps.exe` / `et.exe` 在 `Quit()` 后可能残留 → 标 WARN（预期内），`wpp.exe` 退出干净 |
 
-presentation 的失败直接引出了下面的专项诊断。
+### 待用户用新脚本重跑
 
-## diag-wpp.ps1 专项诊断结果（同环境）
+旧版 `verify-wps.ps1` 对三个应用统一设置 `Visible=$false`，导致 presentation 报 `E_FAIL`
+（见附录）。新版已加 `-KeepVisible` 分支——请在同一台机器上重跑并把原文贴到这里：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File verify-wps.ps1
+```
+
+```text
+（粘贴 OK: / WARN: / FAIL: 全文输出）
+```
+
+## 结论（已写入 skill）
+
+1. writer / spreadsheets：可用 `Visible=$false` 后台运行。
+2. presentation：**禁止**设置 `Visible=$false`，必须以可见窗口运行；跑之前先告诉用户"WPS 会弹出来一下，跑完自动关"。
+3. `wps.exe` / `et.exe` 退出后可能残留：用"启动前 PID 快照 → 结束后只杀新增 PID"的方式清理，**禁止**无脑 `Stop-Process -Name wps/et`（会误杀用户原有窗口）。
+4. 僵尸判定：启动前存在但**没有可见主窗口**的进程视为上轮崩溃残留，直接清理，不算"用户的实例"。
+
+## 附录：presentation E_FAIL 根因（2026-09-28，diag-wpp.ps1）
 
 | 步骤 | 结果 |
 |---|---|
@@ -37,9 +55,3 @@ presentation 的失败直接引出了下面的专项诊断。
 | 导出 PDF（format 32） | OK |
 | `Quit()` | OK |
 | 无新增残留进程 | OK |
-
-## 结论（已写入 skill）
-
-1. writer / spreadsheets：可用 `Visible=$false` 后台运行。
-2. presentation：**禁止**设置 `Visible=$false`，必须以可见窗口运行；跑之前先告诉用户"WPS 会弹出来一下，跑完自动关"。
-3. `wps.exe` / `et.exe` 退出后可能残留：用"启动前 PID 快照 → 结束后只杀新增 PID"的方式清理，**禁止**无脑 `Stop-Process -Name wps/et`（会误杀用户已打开的窗口）。
