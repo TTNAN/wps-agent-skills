@@ -29,11 +29,14 @@ foreach ($k in $progids.Keys) {
 $tmp = Join-Path $env:TEMP "wps-verify"
 New-Item -ItemType Directory -Force -Path $tmp | Out-Null
 
-function Test-WpsApp($progid, $label, [scriptblock]$work) {
+function Test-WpsApp($progid, $label, [scriptblock]$work, [switch]$KeepVisible) {
+    # 2026-09-28 真机结论：
+    # - writer / spreadsheets 支持 Visible=$false 后台运行
+    # - presentation 设置 Visible=$false 会报 HRESULT E_FAIL，必须可见窗口跑
     $app = $null
     try {
         $app = New-Object -ComObject $progid
-        $app.Visible = $false
+        if (-not $KeepVisible) { $app.Visible = $false }
         try { $app.DisplayAlerts = 0 } catch {}
         & $work $app
         Report $true "app-$label" "create+save works"
@@ -82,7 +85,7 @@ Test-WpsApp "KWPP.Application" "presentation" {
     $pres.SaveAs($path)
     $pres.Close()
     if (-not (Test-Path $path)) { throw "save produced no file" }
-}
+} -KeepVisible
 
 # 3. 残留进程检查
 Start-Sleep -Seconds 2
