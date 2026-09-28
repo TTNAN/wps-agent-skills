@@ -7,6 +7,10 @@
 
 教你的 AI 编程助手（Claude Code、Codex 等）用纯 PowerShell 通过 COM 自动化 **WPS Office**——文字、表格、演示全覆盖。**零依赖**：不要 Python、不要 Node、不要装加载项，机器上有 WPS 就能跑。
 
+```powershell
+npx skills add TTNAN/wps-agent-skills
+```
+
 市面上的"办公自动化" skill 基本都是给 Microsoft Office 写的。但在国内，大家用的其实是 WPS——而 WPS 的 COM 坑（带空格的中文样式名、32 位个人版、`AddChart2` 的样式陷阱）正是这套 skill 要解决的，每一条都来自真机实测。
 
 ## Skill 一览
