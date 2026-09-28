@@ -14,6 +14,7 @@ Most "office automation" skills target Microsoft Office. In China, most people r
 | Skill | What it teaches the agent |
 |---|---|
 | [`powershell-windows`](skills/powershell-windows/SKILL.md) | The foundation: PS 5.1 vs 7, BOM/encoding traps, execution policy, admin elevation, paths with spaces, COM basics |
+| [`wps-office`](skills/wps-office/SKILL.md) | Router: decide Writer/Spreadsheets/Presentation when the request is ambiguous; cross-app orchestration |
 | [`wps-writer`](skills/wps-writer/SKILL.md) | Create/edit `.docx`, styled paragraphs (`标题 1`), find-replace, tables, export PDF |
 | [`wps-spreadsheets`](skills/wps-spreadsheets/SKILL.md) | Batch read/write ranges, formulas, formatting, charts, export PDF |
 | [`wps-presentation`](skills/wps-presentation/SKILL.md) | Build decks, layouts, text boxes, pictures, export PDF |
@@ -76,7 +77,7 @@ Once installed, just ask in plain language:
 
 > "用 WPS 表格打开 D:\data\销售.xlsx，把 C 列求和写到 C4，表头加粗，导出一份 PDF"
 
-The agent picks up `wps-spreadsheets`, writes a PowerShell script from the skill's recipes, runs it, and reports back. Same for Writer ("把这份报告转成 PDF") and Presentation ("做 5 页 16:9 的分享 PPT").
+The agent picks up `wps-spreadsheets` and runs the skill's ready-made `scripts/` first (they emit `OK:`/`FAIL:` lines — no hand-assembled COM boilerplate); only for custom work with no ready script does it write a scriptblock for `Invoke-WpsSession.ps1`. Same for Writer ("把这份报告转成 PDF") and Presentation ("做 5 页 16:9 的分享 PPT").
 
 ## Honesty note: verified vs. unverified
 
