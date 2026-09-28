@@ -1,5 +1,6 @@
 ﻿# diag-wpp.ps1 — WPS 演示组件分步诊断
-# Win+R 运行: powershell -NoExit -ExecutionPolicy Bypass -File "D:\Edge Download\diag-wpp.ps1"
+# 用法: powershell -NoExit -ExecutionPolicy Bypass -File $PSCommandPath
+# （在已打开的 PowerShell 里直接跑 .\diag-wpp.ps1 也行）
 $ErrorActionPreference = "Stop"
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
 
