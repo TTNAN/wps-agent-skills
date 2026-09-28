@@ -1,154 +1,79 @@
 ---
 name: wps-spreadsheets
-description: Use when automating WPS Spreadsheets (.xlsx/.et) via COM from PowerShell. Covers batch reading and writing cell ranges, formulas, number formats, styling, charts, and exporting to PDF. Use instead of the generic excel skill whenever the target machine runs WPS Office rather than Microsoft Office.
+description: >
+  在目标机器是 WPS（金山办公）而不是 Microsoft Office 时，用 PowerShell + COM 自动处理 WPS 表格。
+  触发词：WPS、金山、金山表格、WPS表格、xlsx、et文件、求和、做表、批量填表、图表、转PDF。
+  不要用 Excel.Application —— 在同时装了 Office 和 WPS 的机器上，它可能指向任意一方。
+version: 0.1.0
+compatibility: windows + wps-office
 ---
 
-# WPS Spreadsheets Automation (PowerShell + COM)
+# wps-spreadsheets
 
-Drive WPS 表格 (Spreadsheets) through COM from PowerShell. Zero dependencies beyond WPS Office itself. Works with the **free personal edition**.
+用 PowerShell + COM 驱动 WPS 表格。零依赖：除了 WPS Office 本身什么都不需要，免费个人版可用。
 
-Requires: Windows 10/11, WPS Office installed, Windows PowerShell 5.1+. Read the `powershell-windows` skill first — encoding, 32/64-bit, and COM release rules all apply.
+前置：先读 `powershell-windows` skill（5.1 / BOM / 32-64 位 COM 规则）。
 
-## 1. Connecting
+## 何时用 / 何时不用
 
-ProgID is **`KET.Application`** (verified; case-insensitive). Fallback for old installs: `Et.Application`.
+用：目标机器装的是 WPS（金山办公），要读写 `.xlsx` / `.et`、批量填表、公式、图表、转 PDF。
+不用：目标是 Microsoft Excel（用通用 excel skill）；云文档（COM 只碰本地文件）；Windows 服务 / Session 0（WPS 需要已登录的交互式桌面）；复杂透视表（WPS 弱于 Excel，能避则避）。
+
+## 先跑脚本，不要手拼 COM
+
+`scripts/` 里是可直接运行的脚本，输出 `OK:` / `FAIL:` 行。优先调它们：
+
+| 脚本 | 用途 | 关键参数 |
+|---|---|---|
+| `scripts/Invoke-WpsSession.ps1` | 会话包装：连 COM → 跑你的逻辑 → Quit → 倒序释放 → 清残留（批量写自动关 ScreenUpdating 提速） | `-Script { param($et) ... }.GetNewClosure()` |
+| `scripts/New-WpsWorkbook.ps1` | 新建工作簿：表头 + 多行数据一次性写入 | `-OutputPath`、`-SheetName`、`-Headers`、`-Rows` |
+| `scripts/Export-WpsPdf.ps1` | 工作簿转 PDF | `-InputPath`、`-OutputPath` |
+
+自定义逻辑示例：
 
 ```powershell
-function Connect-WpsSpreadsheets {
-    foreach ($progId in @("KET.Application", "Et.Application")) {
-        try { return New-Object -ComObject $progId }
-        catch { }
-    }
-    throw "WPS Spreadsheets COM not available. Is WPS Office installed?"
-}
-```
-
-Do NOT use `Excel.Application` — on dual-install machines it may resolve to MS Excel or WPS unpredictably. Always use the explicit WPS ProgID.
-
-## 2. Session pattern
-
-```powershell
-$et = $null
-try {
-    $et = Connect-WpsSpreadsheets
-    $et.Visible = $false
-    $et.DisplayAlerts = 0
-    $et.ScreenUpdating = $false   # big speedup for batch writes
-
+$sb = {
+    param($et)
     $wb = $et.Workbooks.Add()
-    # ... do work ...
-    $wb.Close()
-}
-finally {
-    if ($et) {
-        $et.Quit()
-        [Runtime.InteropServices.Marshal]::ReleaseComObject($et) | Out-Null
+    try {
+        $ws = $wb.Worksheets.Item(1)   # WPS 集合统一用 .Item(n)
+        $ws.Range("A1").Value2 = "验证"
+        Release-WpsObject $ws          # 倒序释放：先业务对象
+        $wb.SaveAs("$env:TEMP\a.xlsx", 51)
+    } finally {
+        $wb.Close()
+        Release-WpsObject $wb          # …最后释放工作簿；$et 由包装器释放
     }
-}
+}.GetNewClosure()
+& "scripts/Invoke-WpsSession.ps1" -Script $sb
 ```
 
-Same session etiquette as Writer: check `Get-Process -Name "et"` first — if the user already has WPS Spreadsheets open, don't `Quit()` their instance, only close your own workbooks.
+`Release-WpsObject` 由包装器提供。释放顺序永远是**获取的逆序**（Range → Worksheet → Workbook → App），最后 `[GC]::Collect()`。
 
-## 3. Recipes
+## 参考表
 
-### 3.1 Batch write (the fast way)
+- `references/save-formats.md` — SaveAs / ExportAsFixedFormat 常数、BGR 颜色值
+- `references/recipes.md` — 多 sheet、按列名写、冻结窗格、打印区域、图表、公式
 
-Never write cell-by-cell in a loop — it's an order of magnitude slower. Build a 2D array and assign it once:
+## 真机验证过的坑（2026-09-28，Win11 + WPS 个人版）
 
-```powershell
-$wb = $et.Workbooks.Add()
-$ws = $wb.Worksheets.Item(1)   # always .Item(n) — direct indexing like Worksheets(1) is unreliable in WPS
-$ws.Name = "销售数据"
+- ProgID 用 `KET.Application`，老版本回退 `Et.Application`；**永远不要用 `Excel.Application` 碰运气**。
+- `Visible=$false` + `DisplayAlerts=0`：表格支持后台跑。
+- 集合**统一**用 `.Item(1)`，`Worksheets(1)` 这种直接索引在 WPS 里不可靠。
+- 批量写：先拼真正的二维数组（`New-Object 'object[,]'`）再一次性赋给 `Value2`，不要逐格循环（慢一个数量级）；锯齿数组直接赋值经常翻车。
+- 以 `=` 开头的纯文本会被当成公式：前面加英文单引号 `"'=不是公式"`。
+- 图表用 `AddChart2(0, 51, ...)`：Style 必须是 `0`，传 `-1` 返回 null。
+- `Font.Bold` 不要 `-eq $true` 比较（WPS 可能返回 0 / -1 / $true / $false），用真值判断：`if ($cell.Font.Bold) { ... }`。
+- `et.exe` 在 `Quit()` 后可能残留：包装器用"启动前 PID 快照 → 只杀新增 PID"，绝不 `Stop-Process -Name et`。
+- 用户已经开着 WPS 表格时：跳过 `Quit()`，只关自己打开的工作簿。
 
-$data = @(
-    @("产品", "销量", "金额"),
-    @("产品A", 1500, 300000),
-    @("产品B", 900, 180000)
-)
-$ws.Range("A1:C3").Value2 = $data
-```
+## 安全硬规则
 
-### 3.2 Read a whole sheet at once
+- 默认只写 `$env:TEMP` 或用户点名的路径；不扫描、不遍历 `C:\Windows`、桌面等用户没提到的位置。
+- `Stop-Process` 只杀 PID 快照差集。
 
-```powershell
-$all = $ws.UsedRange.Value2   # 2D array; $all[1,1] is A1 (1-based)
-$rowCount = $ws.UsedRange.Rows.Count
-```
+## 待验证 ⚠️
 
-### 3.3 Formulas and number formats
-
-```powershell
-$ws.Range("C4").Formula = "=SUM(C2:C3)"
-$ws.Range("C2:C4").NumberFormat = "#,##0"
-```
-
-⚠️ WPS ships ~400+ functions but **not** the full Excel set: `LAMBDA` / `WEBSERVICE` are missing, and dynamic-array functions (`FILTER`, `SORT`, `XLOOKUP`) have incomplete support with known bugs in nested cases. Test any non-trivial formula on the target machine before relying on it. PivotTables are weaker than Excel's — mark them "limited support" and avoid when possible.
-
-**Text that starts with `=`:** WPS parses it as a formula and throws a COM exception on invalid syntax. Prefix a literal leading apostrophe:
-
-```powershell
-$ws.Range("A5").Value2 = "'=不是公式"   # the ' forces text mode, like typing it in the UI
-```
-
-### 3.4 Styling: header row
-
-```powershell
-$header = $ws.Range("A1:C1")
-$header.Font.Bold = $true
-$header.Font.NameFarEast = "黑体"
-$header.Interior.Color = 65535   # BGR long integer: yellow = 65535, red = 255, blue = 16711680
-```
-
-Two WPS quirks to respect:
-- **Bold check:** WPS may return `0`, `-1`, `$true`, or `$false` for `Font.Bold`. Never compare with `== $true` — use truthiness: `if ($cell.Font.Bold) { ... }`.
-- **Borders:** `.Borders` / `.BorderAround()` have crash reports in WPS scripting environments. Smoke-test border code on your machine before shipping; when in doubt, skip borders.
-
-### 3.5 Chart
-
-```powershell
-# AddChart2(Style, ChartType, Left, Top, Width, Height)
-# Style MUST be 0 (default) — Style = -1 returns null in WPS. 51 = xlColumnClustered (bar chart).
-$chart = $ws.Shapes.AddChart2(0, 51, 350, 20, 480, 300).Chart
-$chart.SetSourceData($ws.Range("A1:C3"))
-$chart.HasTitle = $true
-$chart.ChartTitle.Text = "季度销量"
-$chart.ChartTitle.Font.NameFarEast = "微软雅黑"
-```
-
-### 3.6 Save and export
-
-```powershell
-$wb.SaveAs("D:\out\销售.xlsx", 51)              # 51 = xlOpenXMLWorkbook (.xlsx)
-$wb.ExportAsFixedFormat(0, "D:\out\销售.pdf")  # 0 = xlTypePDF
-```
-
-⚠️ **PDF watermark (unverified):** community reports suggest the free edition may stamp exported PDFs. Verify on your machine before promising clean PDFs.
-
-## 4. Gotchas
-
-| Problem | Cause / fix |
-|---|---|
-| `et.exe` lingers / next run hangs | `Quit()` not in `finally`. Verified 2026-09-28: `et.exe` can linger even after `Quit()` — clean up with the PID-snapshot pattern (kill only PIDs you started): `$before=(Get-Process et -EA SilentlyContinue).Id; ... Start-Sleep 3; Get-Process et -EA SilentlyContinue | Where-Object {$before -notcontains $_.Id} | Stop-Process -Force` |
-| "Cannot create ActiveX component" | 32-bit WPS vs 64-bit PowerShell — retry with `C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe`. |
-| `Worksheets(1)` throws | Use `.Item(1)` for all collections in WPS. |
-| Writing `"=abc"` to a cell throws | Prefix with `'`: `"''=abc"`. |
-| Bold detection logic misfires | Don't compare `Font.Bold -eq $true`; use truthiness. |
-| Chart creation returns null | You passed Style `-1` to `AddChart2`. Use `0`. |
-| Formula works in Excel, fails in WPS | Missing/partial function support — test on WPS, simplify if needed. |
-| Slow on large sheets | You forgot `ScreenUpdating = $false`, or you're writing cell-by-cell. Batch it. |
-
-## 5. What NOT to promise
-
-- **Server/headless use:** needs a logged-in interactive desktop session. No Session 0, no "works on a server" claims.
-- **Cloud workbooks:** COM only touches local files — sync first.
-- **Full Excel parity:** ~400 functions, weaker pivots, partial dynamic arrays. Say what was tested, not what "should" work.
-
-## 6. Checklist before shipping
-
-- [ ] Uses `KET.Application` explicitly (never `Excel.Application`)?
-- [ ] Collections accessed via `.Item(n)`?
-- [ ] Batch writes via 2D array, not loops?
-- [ ] `AddChart2` called with Style `0`, not `-1`?
-- [ ] Text starting with `=` gets the `'` prefix?
-- [ ] `Font.Bold` checked by truthiness, not `-eq $true`?
-- [ ] Tested on a real machine with WPS installed?
+- 免费版导出 PDF 是否带 "WPS Office" 水印（社区传闻，未第一手确认）。
+- `Borders` / `BorderAround()` 在 WPS 脚本环境有崩溃报告，先 smoke-test。
+- `LAMBDA` / `WEBSERVICE` 缺失；`FILTER` / `SORT` / `XLOOKUP` 等动态数组函数支持不完整——复杂公式先在目标机器实测。
