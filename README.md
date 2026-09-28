@@ -68,25 +68,22 @@ Skill 里标了 ⚠️"请在你的机器上验证"的条目，都来自我们�
 
 ```
 wps-agent-skills/
-├── README.md / README_zh-CN.md
+├── README.md / README_en.md
 ├── install.ps1                 # 一键安装脚本（UTF-8 带 BOM，兼容 PS 5.1）
+├── verify-wps.ps1              # 真机验证：ProgID 注册 + 三应用创建保存 + 残留检查
+├── diag-wpp.ps1                # 演示专项诊断（定位 Visible=$false E_FAIL 用过）
 ├── LICENSE                     # MIT
+├── verified/                   # 真实机器验证报告（含 OK/FAIL 全文输出）
 └── skills/
     ├── powershell-windows/     # SKILL.md — Windows/PowerShell 地基
-    ├── wps-writer/             # SKILL.md — WPS 文字
-    ├── wps-spreadsheets/       # SKILL.md — WPS 表格
-    └── wps-presentation/       # SKILL.md — WPS 演示
+    ├── wps-writer/             # SKILL.md + scripts/ + references/ — WPS 文字
+    ├── wps-spreadsheets/       # SKILL.md + scripts/ + references/ — WPS 表格
+    └── wps-presentation/       # SKILL.md + scripts/ + references/ — WPS 演示
 ```
 
 ## 贡献
 
-发现了我们没写到的 WPS 坑？在你的机器上验证了某条 ⚠️？欢迎提 PR——特别欢迎真机测试报告（WPS 版本 + 版本类型 + 成功/失败情况）。
-
-## Star 趋势
-
-如果这套 skill 帮你省了一个下午，点个 ⭐ 能让更多人找到它。
-
-[![Star History Chart](https://api.star-history.com/svg?repos=TTNAN/wps-agent-skills&type=Date)](https://star-history.com/#TTNAN/wps-agent-skills&Date)
+发现了我们没写到的 WPS 坑？在你的机器上验证了某条 ⚠️？欢迎提 PR——特别欢迎真机测试报告（WPS 版本 + 版本类型 + 成功/失败情况），直接把 `verify-wps.ps1` 的完整输出贴进 `verified/` 目录即可。
 
 ## 许可证
 
