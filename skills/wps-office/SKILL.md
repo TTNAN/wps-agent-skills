@@ -27,7 +27,7 @@ compatibility: windows + wps-office
 表格出图 → 贴进 PPT 这类组合：两个 skill 的 `Invoke-WpsSession.ps1` 各跑各的会话，
 不要试图复用同一个 COM 实例。中间文件放 `$env:TEMP`，例如：
 
-1. `wps-spreadsheets`：区域导出图片到 `$env:TEMP\chart.png`
+1. `wps-spreadsheets`：用 `scripts/Export-WpsRangePng.ps1`（⚠️ 真机未验证，先跑一遍看 OK）把区域导出到 `$env:TEMP\chart.png`，不要自己手写 CopyPicture
 2. `wps-presentation`：`AddPicture("$env:TEMP\chart.png", ...)` 贴进幻灯片
 
 ## 用户已经开着 WPS 时
