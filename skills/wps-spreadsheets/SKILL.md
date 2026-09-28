@@ -28,6 +28,14 @@ compatibility: windows + wps-office
 | `scripts/Invoke-WpsSession.ps1` | 会话包装：连 COM → 跑你的逻辑 → Quit → 倒序释放 → 清残留（批量写自动关 ScreenUpdating 提速） | `-Script { param($et) ... }.GetNewClosure()` |
 | `scripts/New-WpsWorkbook.ps1` | 新建工作簿：表头 + 多行数据一次性写入 | `-OutputPath`、`-SheetName`、`-Headers`、`-Rows` |
 | `scripts/Export-WpsPdf.ps1` | 工作簿转 PDF | `-InputPath`、`-OutputPath` |
+| `scripts/Export-WpsRangePng.ps1` | ⚠️ 指定区域导出 PNG（真机未验证，先跑一遍看 OK） | `-InputPath`、`-Range`（如 `A1:E10`）、`-OutputPath` |
+
+**路径规则**：Agent 的 cwd 通常是用户项目，不是 skill 目录——永远用**绝对路径**调脚本，
+先定位 skill 的安装目录（不要用相对路径 `scripts/...`，会找不到文件）：
+
+```powershell
+$skillDir = "$env:USERPROFILE\.claude\skills\wps-spreadsheets"   # Codex: .codex\skills\wps-spreadsheets；Cursor: .cursor\skills\wps-spreadsheets
+```
 
 自定义逻辑示例：
 
@@ -45,7 +53,8 @@ $sb = {
         Release-WpsObject $wb          # …最后释放工作簿；$et 由包装器释放
     }
 }.GetNewClosure()
-& "scripts/Invoke-WpsSession.ps1" -Script $sb
+$skillDir = "$env:USERPROFILE\.claude\skills\wps-spreadsheets"   # 按实际安装位置改
+& "$skillDir\scripts\Invoke-WpsSession.ps1" -Script $sb
 ```
 
 `Release-WpsObject` 由包装器提供。释放顺序永远是**获取的逆序**（Range → Worksheet → Workbook → App），最后 `[GC]::Collect()`。
