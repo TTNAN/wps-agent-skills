@@ -29,6 +29,13 @@ compatibility: windows + wps-office
 | `scripts/New-WpsDocument.ps1` | 新建文档：标题 + 正文 + 存盘 | `-OutputPath`、`-Title`、`-Paragraphs` |
 | `scripts/Export-WpsPdf.ps1` | 文档转 PDF | `-InputPath`、`-OutputPath` |
 
+**路径规则**：Agent 的 cwd 通常是用户项目，不是 skill 目录——永远用**绝对路径**调脚本，
+先定位 skill 的安装目录（不要用相对路径 `scripts/...`，会找不到文件）：
+
+```powershell
+$skillDir = "$env:USERPROFILE\.claude\skills\wps-writer"   # Codex: .codex\skills\wps-writer；Cursor: .cursor\skills\wps-writer
+```
+
 自定义逻辑时，把 scriptblock 传给 `Invoke-WpsSession.ps1`（注意 `.GetNewClosure()`，否则外层参数传不进去）：
 
 ```powershell
@@ -47,7 +54,8 @@ $sb = {
         Release-WpsObject $doc        # …最后释放文档；$app 由包装器释放
     }
 }.GetNewClosure()
-& "scripts/Invoke-WpsSession.ps1" -Script $sb
+$skillDir = "$env:USERPROFILE\.claude\skills\wps-writer"   # 按实际安装位置改
+& "$skillDir\scripts\Invoke-WpsSession.ps1" -Script $sb
 ```
 
 `Release-WpsObject` 由包装器提供。释放顺序永远是**获取的逆序**（Range → Table → Document → App），最后 `[GC]::Collect()`。
