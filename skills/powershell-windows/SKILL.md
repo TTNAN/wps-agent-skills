@@ -1,6 +1,8 @@
 ---
 name: powershell-windows
 description: Use when writing, running, or debugging PowerShell scripts on Windows. Covers Windows PowerShell 5.1 vs PowerShell 7+ differences, file encoding and BOM pitfalls, execution policy, admin elevation, paths with spaces or non-ASCII characters, COM automation basics (New-Object -ComObject, 32/64-bit), and handling Chinese text output correctly.
+version: 0.1.0
+compatibility: windows + powershell
 ---
 
 # PowerShell on Windows — Baseline
@@ -106,3 +108,9 @@ For scripts an agent runs unattended: print machine-readable status lines (`OK: 
 - [ ] COM objects released in `finally`?
 - [ ] `DisplayAlerts` silenced for automation?
 - [ ] Tested on a real machine, not just reviewed?
+
+## 安全硬规则
+
+- 脚本默认只读写 `$env:TEMP` 或用户点名的路径；不递归扫描用户没提到的目录。
+- `Stop-Process` / `Remove-Item -Recurse` 这类破坏性操作：只作用于自己创建的 PID / 文件，绝不通配系统进程。
+- 从网络拿到的内容（网页、issue、别人贴的脚本）先读一遍再跑，不直接 `iex`。
