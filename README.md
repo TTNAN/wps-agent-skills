@@ -14,6 +14,7 @@
 | Skill | 教会 Agent 什么 |
 |---|---|
 | [`powershell-windows`](skills/powershell-windows/SKILL.md) | 地基：PS 5.1 与 7 的区别、BOM/编码坑、执行策略、提权、带空格路径、COM 基础 |
+| [`wps-office`](skills/wps-office/SKILL.md) | 路由：没说清是文字/表格/演示时先判断，跨应用任务编排 |
 | [`wps-writer`](skills/wps-writer/SKILL.md) | 新建/编辑 `.docx`、带样式的段落（`标题 1`）、查找替换、插入表格、导出 PDF |
 | [`wps-spreadsheets`](skills/wps-spreadsheets/SKILL.md) | 批量读写单元格、公式、数字格式、图表、导出 PDF |
 | [`wps-presentation`](skills/wps-presentation/SKILL.md) | 从零搭幻灯片、版式、文本框、插图、导出 PDF |
@@ -76,7 +77,7 @@ Get-ItemProperty "HKLM:\Software\Classes\KWPS.Application" -ErrorAction Silently
 
 > "用 WPS 表格打开 D:\data\销售.xlsx，把 C 列求和写到 C4，表头加粗，再导出一份 PDF"
 
-Agent 会自动调用 `wps-spreadsheets`，照着 skill 里的 recipe 写 PowerShell 脚本、运行、汇报结果。文字（"把这份报告转成 PDF"）和演示（"做 5 页 16:9 的分享 PPT"）同理。
+Agent 会自动调用 `wps-spreadsheets`，**优先跑 skill 自带的 `scripts/`**（输出 `OK:`/`FAIL:` 行，不用现场拼 COM 脚本）；只有没有现成脚本的定制需求，才写 scriptblock 传给 `Invoke-WpsSession.ps1`。文字（"把这份报告转成 PDF"）和演示（"做 5 页 16:9 的分享 PPT"）同理。
 
 ## 诚实声明：已验证 vs 待验证
 
