@@ -68,25 +68,22 @@ Every recipe marked ⚠️ **verify on your machine** in the skills comes from c
 
 ```
 wps-agent-skills/
-├── README.md / README_zh-CN.md
+├── README.md / README_en.md
 ├── install.ps1                 # one-click installer (UTF-8 with BOM, PS 5.1-safe)
+├── verify-wps.ps1              # real-machine check: ProgID registration + create/save + leftover scan
+├── diag-wpp.ps1                # presentation diagnostics (used to pin down the Visible=$false E_FAIL)
 ├── LICENSE                     # MIT
+├── verified/                   # real-machine verification reports (full OK/FAIL output)
 └── skills/
     ├── powershell-windows/     # SKILL.md — the Windows/PowerShell baseline
-    ├── wps-writer/             # SKILL.md — WPS 文字
-    ├── wps-spreadsheets/       # SKILL.md — WPS 表格
-    └── wps-presentation/       # SKILL.md — WPS 演示
+    ├── wps-writer/             # SKILL.md + scripts/ + references/ — WPS Writer
+    ├── wps-spreadsheets/       # SKILL.md + scripts/ + references/ — WPS Spreadsheets
+    └── wps-presentation/       # SKILL.md + scripts/ + references/ — WPS Presentation
 ```
 
 ## Contributing
 
-Found a WPS quirk we missed? Verified a ⚠️ item on your machine? PRs welcome — especially real-machine test reports (WPS version + edition + what worked/failed).
-
-## Star history
-
-If this saved you an afternoon, a ⭐ helps others find it.
-
-[![Star History Chart](https://api.star-history.com/svg?repos=TTNAN/wps-agent-skills&type=Date)](https://star-history.com/#TTNAN/wps-agent-skills&Date)
+Found a WPS quirk we missed? Verified a ⚠️ item on your machine? PRs welcome — especially real-machine test reports (WPS version + edition + what worked/failed). Just paste the full `verify-wps.ps1` output into the `verified/` directory.
 
 ## License
 
