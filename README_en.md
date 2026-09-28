@@ -18,6 +18,8 @@ Most "office automation" skills target Microsoft Office. In China, most people r
 | [`wps-spreadsheets`](skills/wps-spreadsheets/SKILL.md) | Batch read/write ranges, formulas, formatting, charts, export PDF |
 | [`wps-presentation`](skills/wps-presentation/SKILL.md) | Build decks, layouts, text boxes, pictures, export PDF |
 
+How this differs from other WPS skills: we teach the agent **how to open COM reliably** (session wrappers, real-machine gotchas, failure fallbacks) instead of handing it 42 "document templates" to memorize. Every skill ships runnable `scripts/` (emitting `OK:`/`FAIL:` lines), so the agent never has to assemble COM boilerplate from scratch.
+
 ## Requirements
 
 - Windows 10/11 with **WPS Office** installed (free personal edition is fine — COM automation is not paywalled)
@@ -34,12 +36,30 @@ One-liner (PowerShell):
 powershell -ExecutionPolicy Bypass -File install.ps1
 ```
 
-This copies each skill into `~/.claude/skills/<skill-name>/`. Or install manually:
+This auto-detects your installed agents (Claude Code / Codex / Cursor), copies the skills into the right directory, then runs `verify-wps.ps1` as a COM smoke test. Useful flags:
+
+```powershell
+.\install.ps1 -Agent cursor                        # Cursor only
+.\install.ps1 -Skills wps-writer,wps-spreadsheets  # subset of skills
+.\install.ps1 -Uninstall                           # uninstall
+.\install.ps1 -SkipVerify                          # skip the post-install check
+```
+
+Skill directories per agent:
+
+| Agent | Path |
+|---|---|
+| Claude Code | `~/.claude/skills/` |
+| Codex | `~/.codex/skills/` |
+| Cursor | `~/.cursor/skills/` |
+| Generic | `npx skills add TTNAN/wps-agent-skills` |
+
+Or install manually:
 
 ```powershell
 git clone https://github.com/TTNAN/wps-agent-skills.git
 Copy-Item -Recurse .\wps-agent-skills\skills\wps-writer "$env:USERPROFILE\.claude\skills\wps-writer\"
-# repeat for wps-spreadsheets, wps-presentation, powershell-windows
+# repeat for wps-spreadsheets, wps-presentation, powershell-windows, wps-office
 ```
 
 Verify WPS COM is reachable:
@@ -48,7 +68,7 @@ Verify WPS COM is reachable:
 Get-ItemProperty "HKLM:\Software\Classes\KWPS.Application" -ErrorAction SilentlyContinue
 ```
 
-Using Codex or another agent? Copy the skill folders into that agent's skills directory instead — the `SKILL.md` format is the same.
+Using Codex or another agent? The installer auto-detects it — or copy the skill folders into that agent's skills directory manually; the `SKILL.md` format is the same.
 
 ## Usage
 
@@ -76,6 +96,7 @@ wps-agent-skills/
 ├── verified/                   # real-machine verification reports (full OK/FAIL output)
 └── skills/
     ├── powershell-windows/     # SKILL.md — the Windows/PowerShell baseline
+    ├── wps-office/             # SKILL.md — router: which business skill to use
     ├── wps-writer/             # SKILL.md + scripts/ + references/ — WPS Writer
     ├── wps-spreadsheets/       # SKILL.md + scripts/ + references/ — WPS Spreadsheets
     └── wps-presentation/       # SKILL.md + scripts/ + references/ — WPS Presentation
