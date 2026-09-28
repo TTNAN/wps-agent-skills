@@ -49,6 +49,9 @@ ProgID 的注册表键还在，但它指向的 CLSID 链断了。早上同一台
 教训已写入脚本：`verify-wps.ps1` 的 ProgID 检查不再只看"键存在"，
 而是跟完 **ProgID → CLSID → LocalServer32 → exe 文件存在** 整条链，
 链断会直接报 `FAIL: progid-registered …（CLSID 为空：COM 注册已损坏，需修复/重装 WPS）`。
+另：用户环境是 64 位 PowerShell + 32 位 WPS，32 位 COM 经常只注册在
+`HKLM:\Software\Wow6432Node\Classes` 下，所以检查的查找根已把 Wow6432Node 加进去，
+避免在"只写了 Wow6432Node"的机器上误报"CLSID 为空"。
 
 ## 结论（已写入 skill）
 
