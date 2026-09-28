@@ -36,6 +36,13 @@ compatibility: windows + wps-office
 | `scripts/New-WpsDeck.ps1` | 新建文稿：标题页 + N 个内容页（空白版式+文本框，最稳） | `-OutputPath`、`-Title`、`-Subtitle`、`-Slides` |
 | `scripts/Export-WpsPdf.ps1` | 文稿转 PDF（`SaveAs($path, 32)`） | `-InputPath`、`-OutputPath` |
 
+**路径规则**：Agent 的 cwd 通常是用户项目，不是 skill 目录——永远用**绝对路径**调脚本，
+先定位 skill 的安装目录（不要用相对路径 `scripts/...`，会找不到文件）：
+
+```powershell
+$skillDir = "$env:USERPROFILE\.claude\skills\wps-presentation"   # Codex: .codex\skills\wps-presentation；Cursor: .cursor\skills\wps-presentation
+```
+
 自定义逻辑示例：
 
 ```powershell
@@ -54,7 +61,8 @@ $sb = {
         Release-WpsObject $pres            # …最后释放文稿；$wpp 由包装器释放
     }
 }.GetNewClosure()
-& "scripts/Invoke-WpsSession.ps1" -Script $sb
+$skillDir = "$env:USERPROFILE\.claude\skills\wps-presentation"   # 按实际安装位置改
+& "$skillDir\scripts\Invoke-WpsSession.ps1" -Script $sb
 ```
 
 `Release-WpsObject` 由包装器提供。释放顺序永远是**获取的逆序**（Shape → Slide → Presentation → App），最后 `[GC]::Collect()`。
