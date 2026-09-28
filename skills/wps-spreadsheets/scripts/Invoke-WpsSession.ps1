@@ -34,7 +34,7 @@ function Release-WpsObject($obj) {
     }
 }
 
-# 注意：会话规则（僵尸判定 / PID 快照 / 清理）在三个 skill 的 Invoke-WpsSession.ps1 里各有一份，
+# 注意：会话规则（僵尸判定 / PID 快照 / 懒清理 / 差集清理）在三个 skill 的 Invoke-WpsSession.ps1 里各有一份，
 # 改一处必须三处同步（wps-writer / wps-spreadsheets / wps-presentation）。
 $procName = "et"
 function Get-WpsSnapshot($name) {
@@ -43,12 +43,10 @@ function Get-WpsSnapshot($name) {
     })
 }
 $before = Get-WpsSnapshot $procName
-# 僵尸判定：启动前就存在、但没有可见主窗口 → 通常是上轮崩溃残留，直接杀掉，不算"用户的实例"。
-foreach ($z in @($before | Where-Object { -not $_.HasWindow })) {
-    try { Stop-Process -Id $z.Id -Force; Report $true "zombie-cleanup" "killed stale PID $($z.Id) (no main window)" } catch { }
-}
 $beforeIds = @($before | ForEach-Object { $_.Id })
-# $owned=$false 仅当：启动前存在带可见主窗口的进程（用户真的在用）
+# $owned=$false 仅当：启动前存在带可见主窗口的进程（用户真的在用）。
+# 无窗口的预存进程 ≠ 一定是僵尸（可能是托盘驻留/云同步/还没退完），开局不杀——
+# 只有 New-Object 全部失败时，才清理它们再重试（见"懒清理"）。
 $owned = @($before | Where-Object { $_.HasWindow }).Count -eq 0
 $app = $null
 $code = 0
@@ -56,6 +54,18 @@ try {
     foreach ($progId in @("KET.Application", "Et.Application")) {
         try { $app = New-Object -ComObject $progId; Report $true "connect" $progId; break }
         catch { }
+    }
+    if (-not $app) {
+        # 懒清理：连接失败才动刀。无可见主窗口的预存进程很可能是上轮崩溃的僵尸，
+        # 清掉再试一次；带窗口的（用户正在用）绝不碰。
+        foreach ($z in @($before | Where-Object { -not $_.HasWindow })) {
+            try { Stop-Process -Id $z.Id -Force; Report $true "zombie-cleanup" "killed stale PID $($z.Id) (no main window)" } catch { }
+        }
+        Start-Sleep -Seconds 1
+        foreach ($progId in @("KET.Application", "Et.Application")) {
+            try { $app = New-Object -ComObject $progId; Report $true "connect-retry" $progId; break }
+            catch { }
+        }
     }
     if (-not $app) { throw "WPS 表格 COM 不可用：请确认安装了 WPS Office" }
     if ($owned) {
