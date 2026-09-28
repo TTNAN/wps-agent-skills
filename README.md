@@ -1,8 +1,9 @@
+**English** | [简体中文](README_zh-CN.md)
+
 # WPS Agent Skills
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/TTNAN/wps-agent-skills)](https://github.com/TTNAN/wps-agent-skills/stargazers)
-[![中文](https://img.shields.io/badge/文档-中文-blue)](README_zh-CN.md)
 
 Teach your AI coding agent (Claude Code, Codex, etc.) to automate **WPS Office** — Writer, Spreadsheets, and Presentation — through COM, using plain PowerShell. **Zero dependencies**: no Python, no Node, no add-ins. If the machine has WPS, the skills work.
 
