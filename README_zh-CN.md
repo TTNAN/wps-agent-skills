@@ -1,8 +1,9 @@
+[English](README.md) | **简体中文**
+
 # WPS Agent Skills
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/TTNAN/wps-agent-skills)](https://github.com/TTNAN/wps-agent-skills/stargazers)
-[![English](https://img.shields.io/badge/docs-English-blue)](README.md)
 
 教你的 AI 编程助手（Claude Code、Codex 等）用纯 PowerShell 通过 COM 自动化 **WPS Office**——文字、表格、演示全覆盖。**零依赖**：不要 Python、不要 Node、不要装加载项，机器上有 WPS 就能跑。
 
