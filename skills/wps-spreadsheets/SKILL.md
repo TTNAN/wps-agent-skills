@@ -30,11 +30,16 @@ compatibility: windows + wps-office
 | `scripts/Export-WpsPdf.ps1` | 工作簿转 PDF | `-InputPath`、`-OutputPath` |
 | `scripts/Export-WpsRangePng.ps1` | ⚠️ 指定区域导出 PNG（真机未验证，先跑一遍看 OK） | `-InputPath`、`-Range`（如 `A1:E10`）、`-OutputPath` |
 
-**路径规则**：Agent 的 cwd 通常是用户项目，不是 skill 目录——永远用**绝对路径**调脚本，
-先定位 skill 的安装目录（不要用相对路径 `scripts/...`，会找不到文件）：
+**路径规则**：Agent 的 cwd 通常是用户项目，不是 skill 目录——永远用**绝对路径**调脚本。
+先按 Claude → Codex → Cursor 的顺序探测实际安装位置（不要用相对路径 `scripts/...`，会找不到文件）：
 
 ```powershell
-$skillDir = "$env:USERPROFILE\.claude\skills\wps-spreadsheets"   # Codex: .codex\skills\wps-spreadsheets；Cursor: .cursor\skills\wps-spreadsheets
+$skillDir = @(
+    "$env:USERPROFILE\.claude\skills\wps-spreadsheets",
+    "$env:USERPROFILE\.codex\skills\wps-spreadsheets",
+    "$env:USERPROFILE\.cursor\skills\wps-spreadsheets"
+) | Where-Object { Test-Path "$_\scripts\Invoke-WpsSession.ps1" } | Select-Object -First 1
+if (-not $skillDir) { throw "wps-spreadsheets skill 未安装：请先跑仓库里的 install.ps1" }
 ```
 
 自定义逻辑示例：
@@ -53,7 +58,12 @@ $sb = {
         Release-WpsObject $wb          # …最后释放工作簿；$et 由包装器释放
     }
 }.GetNewClosure()
-$skillDir = "$env:USERPROFILE\.claude\skills\wps-spreadsheets"   # 按实际安装位置改
+$skillDir = @(
+    "$env:USERPROFILE\.claude\skills\wps-spreadsheets",
+    "$env:USERPROFILE\.codex\skills\wps-spreadsheets",
+    "$env:USERPROFILE\.cursor\skills\wps-spreadsheets"
+) | Where-Object { Test-Path "$_\scripts\Invoke-WpsSession.ps1" } | Select-Object -First 1
+if (-not $skillDir) { throw "wps-spreadsheets skill 未安装：请先跑仓库里的 install.ps1" }
 & "$skillDir\scripts\Invoke-WpsSession.ps1" -Script $sb
 ```
 
