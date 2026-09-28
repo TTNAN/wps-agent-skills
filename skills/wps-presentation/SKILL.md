@@ -36,11 +36,16 @@ compatibility: windows + wps-office
 | `scripts/New-WpsDeck.ps1` | 新建文稿：标题页 + N 个内容页（空白版式+文本框，最稳） | `-OutputPath`、`-Title`、`-Subtitle`、`-Slides` |
 | `scripts/Export-WpsPdf.ps1` | 文稿转 PDF（`SaveAs($path, 32)`） | `-InputPath`、`-OutputPath` |
 
-**路径规则**：Agent 的 cwd 通常是用户项目，不是 skill 目录——永远用**绝对路径**调脚本，
-先定位 skill 的安装目录（不要用相对路径 `scripts/...`，会找不到文件）：
+**路径规则**：Agent 的 cwd 通常是用户项目，不是 skill 目录——永远用**绝对路径**调脚本。
+先按 Claude → Codex → Cursor 的顺序探测实际安装位置（不要用相对路径 `scripts/...`，会找不到文件）：
 
 ```powershell
-$skillDir = "$env:USERPROFILE\.claude\skills\wps-presentation"   # Codex: .codex\skills\wps-presentation；Cursor: .cursor\skills\wps-presentation
+$skillDir = @(
+    "$env:USERPROFILE\.claude\skills\wps-presentation",
+    "$env:USERPROFILE\.codex\skills\wps-presentation",
+    "$env:USERPROFILE\.cursor\skills\wps-presentation"
+) | Where-Object { Test-Path "$_\scripts\Invoke-WpsSession.ps1" } | Select-Object -First 1
+if (-not $skillDir) { throw "wps-presentation skill 未安装：请先跑仓库里的 install.ps1" }
 ```
 
 自定义逻辑示例：
@@ -61,7 +66,12 @@ $sb = {
         Release-WpsObject $pres            # …最后释放文稿；$wpp 由包装器释放
     }
 }.GetNewClosure()
-$skillDir = "$env:USERPROFILE\.claude\skills\wps-presentation"   # 按实际安装位置改
+$skillDir = @(
+    "$env:USERPROFILE\.claude\skills\wps-presentation",
+    "$env:USERPROFILE\.codex\skills\wps-presentation",
+    "$env:USERPROFILE\.cursor\skills\wps-presentation"
+) | Where-Object { Test-Path "$_\scripts\Invoke-WpsSession.ps1" } | Select-Object -First 1
+if (-not $skillDir) { throw "wps-presentation skill 未安装：请先跑仓库里的 install.ps1" }
 & "$skillDir\scripts\Invoke-WpsSession.ps1" -Script $sb
 ```
 
