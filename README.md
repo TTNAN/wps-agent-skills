@@ -18,6 +18,8 @@
 | [`wps-spreadsheets`](skills/wps-spreadsheets/SKILL.md) | 批量读写单元格、公式、数字格式、图表、导出 PDF |
 | [`wps-presentation`](skills/wps-presentation/SKILL.md) | 从零搭幻灯片、版式、文本框、插图、导出 PDF |
 
+和其它 WPS skill 的区别：我们教 Agent **怎么可靠地打开 COM**（会话包装、真机坑、失败降级），而不是给 42 个"公文模板"让 Agent 背。每份 skill 自带可直接跑的 `scripts/`（输出 `OK:`/`FAIL:`），Agent 不用现场拼脚本。
+
 ## 环境要求
 
 - Windows 10/11 + 安装了 **WPS Office**（免费个人版就行，COM 自动化不收费）
@@ -34,12 +36,30 @@
 powershell -ExecutionPolicy Bypass -File install.ps1
 ```
 
-会自动把每个 skill 拷到 `~/.claude/skills/<skill-name>/`。也可以手动安装：
+自动探测已安装的 Agent（Claude Code / Codex / Cursor），把 skill 拷到对应目录，装完自动跑 `verify-wps.ps1` 做 COM 探活。常用参数：
+
+```powershell
+.\install.ps1 -Agent cursor                    # 只装给 Cursor
+.\install.ps1 -Skills wps-writer,wps-spreadsheets  # 只装部分 skill
+.\install.ps1 -Uninstall                       # 卸载
+.\install.ps1 -SkipVerify                      # 跳过装完的自动验证
+```
+
+各 Agent 的 skills 目录：
+
+| Agent | 路径 |
+|---|---|
+| Claude Code | `~/.claude/skills/` |
+| Codex | `~/.codex/skills/` |
+| Cursor | `~/.cursor/skills/` |
+| 通用 | `npx skills add TTNAN/wps-agent-skills` |
+
+手动安装也可以：
 
 ```powershell
 git clone https://github.com/TTNAN/wps-agent-skills.git
 Copy-Item -Recurse .\wps-agent-skills\skills\wps-writer "$env:USERPROFILE\.claude\skills\wps-writer\"
-# wps-spreadsheets、wps-presentation、powershell-windows 同理
+# wps-spreadsheets、wps-presentation、powershell-windows、wps-office 同理
 ```
 
 验证 WPS COM 是否可用：
@@ -76,6 +96,7 @@ wps-agent-skills/
 ├── verified/                   # 真实机器验证报告（含 OK/FAIL 全文输出）
 └── skills/
     ├── powershell-windows/     # SKILL.md — Windows/PowerShell 地基
+    ├── wps-office/             # SKILL.md — 路由：判断用哪个业务 skill
     ├── wps-writer/             # SKILL.md + scripts/ + references/ — WPS 文字
     ├── wps-spreadsheets/       # SKILL.md + scripts/ + references/ — WPS 表格
     └── wps-presentation/       # SKILL.md + scripts/ + references/ — WPS 演示
