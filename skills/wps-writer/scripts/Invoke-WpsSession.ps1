@@ -36,6 +36,7 @@ function Release-WpsObject($obj) {
 
 $procName = "wps"
 $before = @(Get-Process -Name $procName -ErrorAction SilentlyContinue | ForEach-Object { $_.Id })
+$owned = $before.Count -eq 0   # $false = 附着到了用户已开的实例，不要动它的窗口/弹窗设置
 $app = $null
 $code = 0
 try {
@@ -44,8 +45,10 @@ try {
         catch { }
     }
     if (-not $app) { throw "WPS 文字 COM 不可用：请确认安装了 WPS Office" }
-    $app.Visible = $false
-    $app.DisplayAlerts = 0
+    if ($owned) {
+        $app.Visible = $false
+        $app.DisplayAlerts = 0
+    }
     & $Script $app
     Report $true "session" "done"
 } catch {
@@ -53,7 +56,7 @@ try {
     $code = 1
 } finally {
     if ($app) {
-        if ($before.Count -gt 0) {
+        if (-not $owned) {
             # 用户已经开着 WPS：New-Object 附着到了他的实例，跳过 Quit，只关自己打开的文档
             Report $true "session" "attached to user's running WPS; skipped Quit"
         } else {
