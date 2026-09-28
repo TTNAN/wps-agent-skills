@@ -34,9 +34,22 @@ function Release-WpsObject($obj) {
     }
 }
 
+# 注意：会话规则（僵尸判定 / PID 快照 / 清理）在三个 skill 的 Invoke-WpsSession.ps1 里各有一份，
+# 改一处必须三处同步（wps-writer / wps-spreadsheets / wps-presentation）。
 $procName = "et"
-$before = @(Get-Process -Name $procName -ErrorAction SilentlyContinue | ForEach-Object { $_.Id })
-$owned = $before.Count -eq 0   # $false = 附着到了用户已开的实例，不要动它的窗口/弹窗设置
+function Get-WpsSnapshot($name) {
+    @(Get-Process -Name $name -ErrorAction SilentlyContinue | ForEach-Object {
+        [pscustomobject]@{ Id = $_.Id; HasWindow = ($_.MainWindowHandle -ne 0) }
+    })
+}
+$before = Get-WpsSnapshot $procName
+# 僵尸判定：启动前就存在、但没有可见主窗口 → 通常是上轮崩溃残留，直接杀掉，不算"用户的实例"。
+foreach ($z in @($before | Where-Object { -not $_.HasWindow })) {
+    try { Stop-Process -Id $z.Id -Force; Report $true "zombie-cleanup" "killed stale PID $($z.Id) (no main window)" } catch { }
+}
+$beforeIds = @($before | ForEach-Object { $_.Id })
+# $owned=$false 仅当：启动前存在带可见主窗口的进程（用户真的在用）
+$owned = @($before | Where-Object { $_.HasWindow }).Count -eq 0
 $app = $null
 $code = 0
 try {
@@ -68,7 +81,7 @@ try {
         Start-Sleep -Seconds 2
         # 只杀本次新增的 PID，绝不碰用户原有的 et.exe
         $leftover = @(Get-Process -Name $procName -ErrorAction SilentlyContinue |
-            Where-Object { $before -notcontains $_.Id })
+            Where-Object { $beforeIds -notcontains $_.Id })
         if ($leftover.Count -gt 0) {
             $leftover | Stop-Process -Force
             Report $true "cleanup" "killed $($leftover.Count) lingering process(es)"
