@@ -1,101 +1,101 @@
-**English** | [简体中文](README_zh-CN.md)
+[English](README_en.md) | **简体中文**
 
 # WPS Agent Skills
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/TTNAN/wps-agent-skills)](https://github.com/TTNAN/wps-agent-skills/stargazers)
 
-Teach your AI coding agent (Claude Code, Codex, etc.) to automate **WPS Office** — Writer, Spreadsheets, and Presentation — through COM, using plain PowerShell. **Zero dependencies**: no Python, no Node, no add-ins. If the machine has WPS, the skills work.
+教你的 AI 编程助手（Claude Code、Codex 等）用纯 PowerShell 通过 COM 自动化 **WPS Office**——文字、表格、演示全覆盖。**零依赖**：不要 Python、不要 Node、不要装加载项，机器上有 WPS 就能跑。
 
-Most "office automation" skills target Microsoft Office. In China, most people run WPS — and WPS's COM quirks (Chinese style names with spaces, 32-bit personal edition, `AddChart2` style traps) are exactly what these skills cover, learned from real machines.
+市面上的"办公自动化" skill 基本都是给 Microsoft Office 写的。但在国内，大家用的其实是 WPS——而 WPS 的 COM 坑（带空格的中文样式名、32 位个人版、`AddChart2` 的样式陷阱）正是这套 skill 要解决的，每一条都来自真机实测。
 
-## Skills
+## Skill 一览
 
-| Skill | What it teaches the agent |
+| Skill | 教会 Agent 什么 |
 |---|---|
-| [`powershell-windows`](skills/powershell-windows/SKILL.md) | The foundation: PS 5.1 vs 7, BOM/encoding traps, execution policy, admin elevation, paths with spaces, COM basics |
-| [`wps-writer`](skills/wps-writer/SKILL.md) | Create/edit `.docx`, styled paragraphs (`标题 1`), find-replace, tables, export PDF |
-| [`wps-spreadsheets`](skills/wps-spreadsheets/SKILL.md) | Batch read/write ranges, formulas, formatting, charts, export PDF |
-| [`wps-presentation`](skills/wps-presentation/SKILL.md) | Build decks, layouts, text boxes, pictures, export PDF |
+| [`powershell-windows`](skills/powershell-windows/SKILL.md) | 地基：PS 5.1 与 7 的区别、BOM/编码坑、执行策略、提权、带空格路径、COM 基础 |
+| [`wps-writer`](skills/wps-writer/SKILL.md) | 新建/编辑 `.docx`、带样式的段落（`标题 1`）、查找替换、插入表格、导出 PDF |
+| [`wps-spreadsheets`](skills/wps-spreadsheets/SKILL.md) | 批量读写单元格、公式、数字格式、图表、导出 PDF |
+| [`wps-presentation`](skills/wps-presentation/SKILL.md) | 从零搭幻灯片、版式、文本框、插图、导出 PDF |
 
-## Requirements
+## 环境要求
 
-- Windows 10/11 with **WPS Office** installed (free personal edition is fine — COM automation is not paywalled)
-- Windows PowerShell 5.1+ (ships with Windows)
-- An AI coding agent that supports skills: Claude Code (`~/.claude/skills/`), Codex, or similar
+- Windows 10/11 + 安装了 **WPS Office**（免费个人版就行，COM 自动化不收费）
+- Windows PowerShell 5.1+（系统自带）
+- 支持 skill 的 AI 编程助手：Claude Code（`~/.claude/skills/`）、Codex 等
 
-> WPS automation needs a **logged-in interactive desktop session**. It won't work from Windows services (Session 0). That's an Office-COM fact of life, not a bug in these skills.
+> WPS 自动化需要**已登录的交互式桌面会话**，Windows 服务（Session 0）里跑不起来。这是 Office COM 的先天限制，不是 skill 的 bug。
 
-## Install
+## 安装
 
-One-liner (PowerShell):
+一行命令（PowerShell）：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File install.ps1
 ```
 
-This copies each skill into `~/.claude/skills/<skill-name>/`. Or install manually:
+会自动把每个 skill 拷到 `~/.claude/skills/<skill-name>/`。也可以手动安装：
 
 ```powershell
 git clone https://github.com/TTNAN/wps-agent-skills.git
 Copy-Item -Recurse .\wps-agent-skills\skills\wps-writer "$env:USERPROFILE\.claude\skills\wps-writer\"
-# repeat for wps-spreadsheets, wps-presentation, powershell-windows
+# wps-spreadsheets、wps-presentation、powershell-windows 同理
 ```
 
-Verify WPS COM is reachable:
+验证 WPS COM 是否可用：
 
 ```powershell
 Get-ItemProperty "HKLM:\Software\Classes\KWPS.Application" -ErrorAction SilentlyContinue
 ```
 
-Using Codex or another agent? Copy the skill folders into that agent's skills directory instead — the `SKILL.md` format is the same.
+用 Codex 或其他助手？把 skill 文件夹拷到对应助手的 skills 目录即可，`SKILL.md` 格式是通用的。
 
-## Usage
+## 用法
 
-Once installed, just ask in plain language:
+装好之后直接说人话就行：
 
-> "用 WPS 表格打开 D:\data\销售.xlsx，把 C 列求和写到 C4，表头加粗，导出一份 PDF"
+> "用 WPS 表格打开 D:\data\销售.xlsx，把 C 列求和写到 C4，表头加粗，再导出一份 PDF"
 
-The agent picks up `wps-spreadsheets`, writes a PowerShell script from the skill's recipes, runs it, and reports back. Same for Writer ("把这份报告转成 PDF") and Presentation ("做 5 页 16:9 的分享 PPT").
+Agent 会自动调用 `wps-spreadsheets`，照着 skill 里的 recipe 写 PowerShell 脚本、运行、汇报结果。文字（"把这份报告转成 PDF"）和演示（"做 5 页 16:9 的分享 PPT"）同理。
 
-## Honesty note: verified vs. unverified
+## 诚实声明：已验证 vs 待验证
 
-Every recipe marked ⚠️ **verify on your machine** in the skills comes from community reports we could not confirm first-hand (e.g. whether the free edition watermarks exported PDFs, whether `Slide.Export` works under WPS). We'd rather flag uncertainty than ship confident-sounding fiction. If you verify one, open a PR — we'll promote it to confirmed.
+Skill 里标了 ⚠️"请在你的机器上验证"的条目，都来自我们未能第一手确认的社区经验（比如免费版导出 PDF 是否带水印、WPS 下 `Slide.Export` 是否可用）。我们宁可标出不确定，也不编造"看起来很确定"的内容。如果你验证了某一条，欢迎提 PR，我们会把它升级为已确认。
 
-**Already verified on a real machine** (Windows 11, PowerShell 5.1 64-bit, WPS personal edition, 2026-09-28): all three ProgIDs (`KWPS.Application`, `KET.Application`, `KWPP.Application`); Writer and Spreadsheets run headless (`Visible=$false`) and save `.docx`/`.xlsx` correctly; Presentation builds slides and exports `.pptx`/PDF — but **rejects `Visible=$false` with E_FAIL**, so it must run with its window visible; `wpp.exe` exits cleanly while `wps.exe`/`et.exe` may linger after `Quit()`.
+**已在真机验证通过**（Windows 11、PowerShell 5.1 64 位、WPS 个人版，2026-09-28）：三个 ProgID（`KWPS.Application`、`KET.Application`、`KWPP.Application`）全部可用；文字和表格支持后台运行（`Visible=$false`）并正常存盘 `.docx`/`.xlsx`；演示可以建幻灯片、导出 `.pptx`/PDF——但**设置 `Visible=$false` 会直接报 E_FAIL**，必须亮着窗口跑；`wpp.exe` 退出干净，而 `wps.exe`/`et.exe` 在 `Quit()` 后可能残留。
 
-## Project structure
+## 目录结构
 
 ```
 wps-agent-skills/
 ├── README.md / README_zh-CN.md
-├── install.ps1                 # one-click installer (UTF-8 with BOM, PS 5.1-safe)
+├── install.ps1                 # 一键安装脚本（UTF-8 带 BOM，兼容 PS 5.1）
 ├── LICENSE                     # MIT
 └── skills/
-    ├── powershell-windows/     # SKILL.md — the Windows/PowerShell baseline
+    ├── powershell-windows/     # SKILL.md — Windows/PowerShell 地基
     ├── wps-writer/             # SKILL.md — WPS 文字
     ├── wps-spreadsheets/       # SKILL.md — WPS 表格
     └── wps-presentation/       # SKILL.md — WPS 演示
 ```
 
-## Contributing
+## 贡献
 
-Found a WPS quirk we missed? Verified a ⚠️ item on your machine? PRs welcome — especially real-machine test reports (WPS version + edition + what worked/failed).
+发现了我们没写到的 WPS 坑？在你的机器上验证了某条 ⚠️？欢迎提 PR——特别欢迎真机测试报告（WPS 版本 + 版本类型 + 成功/失败情况）。
 
-## Star history
+## Star 趋势
 
-If this saved you an afternoon, a ⭐ helps others find it.
+如果这套 skill 帮你省了一个下午，点个 ⭐ 能让更多人找到它。
 
 [![Star History Chart](https://api.star-history.com/svg?repos=TTNAN/wps-agent-skills&type=Date)](https://star-history.com/#TTNAN/wps-agent-skills&Date)
 
-## License
+## 许可证
 
-MIT — see [LICENSE](LICENSE).
+MIT — 见 [LICENSE](LICENSE)。
 
-## Buy me a coffee
+## 请我喝杯咖啡
 
-If this project saved you some time, feel free to buy me a coffee. ☕
+如果这个项目帮你省了点时间，欢迎请我喝杯咖啡。☕
 
-| Alipay | WeChat Pay |
-| ------ | ---------- |
-| ![Alipay](assets/alipay.jpg) | ![WeChat Pay](assets/wechat-pay.png) |
+| 支付宝 | 微信支付 |
+| ------ | -------- |
+| ![支付宝收款码](assets/alipay.jpg) | ![微信支付收款码](assets/wechat-pay.png) |
