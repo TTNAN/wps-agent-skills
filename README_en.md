@@ -7,6 +7,10 @@
 
 Teach your AI coding agent (Claude Code, Codex, etc.) to automate **WPS Office** — Writer, Spreadsheets, and Presentation — through COM, using plain PowerShell. **Zero dependencies**: no Python, no Node, no add-ins. If the machine has WPS, the skills work.
 
+```powershell
+npx skills add TTNAN/wps-agent-skills
+```
+
 Most "office automation" skills target Microsoft Office. In China, most people run WPS — and WPS's COM quirks (Chinese style names with spaces, 32-bit personal edition, `AddChart2` style traps) are exactly what these skills cover, learned from real machines.
 
 ## Skills
