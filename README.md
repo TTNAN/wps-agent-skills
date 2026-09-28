@@ -91,3 +91,11 @@ If this saved you an afternoon, a ⭐ helps others find it.
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+## Buy me a coffee
+
+If this project saved you some time, feel free to buy me a coffee. ☕
+
+| Alipay | WeChat Pay |
+| ------ | ---------- |
+| ![Alipay](assets/alipay.jpg) | ![WeChat Pay](assets/wechat-pay.png) |
