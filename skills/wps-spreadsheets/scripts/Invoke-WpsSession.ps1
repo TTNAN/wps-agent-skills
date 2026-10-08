@@ -28,7 +28,12 @@ function Report($ok, $name, $detail = "") {
 }
 
 # 倒序释放 helper：调用方按"获取的逆序"逐个释放业务对象，$et 由 finally 统一释放
-function Release-WpsObject($obj) {
+# ⚠️ 必须是 global:。调用方的 scriptblock 是 .GetNewClosure() 出来的动态模块，
+# 模块内的命令解析只走 global，看不到本脚本作用域里的函数——所以当调用方脚本本身
+# 也是被 & 调用的（Agent 的典型三层调用：agent 脚本 -> skill 脚本 -> 本包装器），
+# 闭包内调 Release-WpsObject 会直接报 "is not recognized"，稿子存不下来。
+# 本机 Windows 11 + PS 5.1 + WPS 个人版实测：两层调用正常，三层必现。
+function global:Release-WpsObject($obj) {
     if ($null -ne $obj) {
         [Runtime.InteropServices.Marshal]::ReleaseComObject($obj) | Out-Null
     }
